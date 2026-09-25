@@ -1,14 +1,28 @@
 import { AbstractPaymentProvider } from "@medusajs/framework/utils"
+import {
+  AuthorizePaymentInput,
+  AuthorizePaymentOutput,
+  CancelPaymentInput,
+  CancelPaymentOutput,
+  CapturePaymentInput,
+  CapturePaymentOutput,
+  DeletePaymentInput,
+  DeletePaymentOutput,
+  GetPaymentStatusInput,
+  GetPaymentStatusOutput,
+  InitiatePaymentInput,
+  InitiatePaymentOutput,
+  RefundPaymentInput,
+  RefundPaymentOutput,
+  RetrievePaymentInput,
+  RetrievePaymentOutput,
+  UpdatePaymentInput,
+  UpdatePaymentOutput,
+  ProviderWebhookPayload,
+  WebhookActionResult,
+} from "@medusajs/framework/types"
 import crypto from "crypto"
 import { BoldPaymentOptions, BoldPaymentSessionData } from "./types"
-
-type PaymentSessionStatus =
-  | "authorized"
-  | "captured"
-  | "pending"
-  | "requires_more"
-  | "error"
-  | "canceled"
 
 export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaymentOptions> {
   static identifier = "bold"
@@ -58,7 +72,9 @@ export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaym
     }
   }
 
-  async initiatePayment(input: any): Promise<any> {
+  async initiatePayment(
+    input: InitiatePaymentInput
+  ): Promise<InitiatePaymentOutput> {
     const orderId = `bold_${Date.now()}_${Math.random()
       .toString(36)
       .substring(2, 7)}`
@@ -77,29 +93,30 @@ export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaym
 
     return {
       id: orderId,
-      data: sessionData,
+      data: sessionData as unknown as Record<string, unknown>,
     }
   }
 
   async authorizePayment(
-    paymentSessionData: Record<string, unknown>,
-    _context: Record<string, unknown>
-  ): Promise<any> {
+    input: AuthorizePaymentInput
+  ): Promise<AuthorizePaymentOutput> {
+    const data = input.data || {}
     const isApproved =
-      paymentSessionData.status === "authorized" ||
-      paymentSessionData.status === "captured"
+      data.status === "authorized" || data.status === "captured"
 
     return {
       status: isApproved ? "authorized" : "pending",
       data: {
-        ...paymentSessionData,
+        ...data,
         status: isApproved ? "authorized" : "pending",
       },
     }
   }
 
-  async capturePayment(input: any): Promise<any> {
-    const data = input.paymentSessionData || {}
+  async capturePayment(
+    input: CapturePaymentInput
+  ): Promise<CapturePaymentOutput> {
+    const data = input.data || {}
     return {
       data: {
         ...data,
@@ -108,8 +125,10 @@ export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaym
     }
   }
 
-  async refundPayment(input: any): Promise<any> {
-    const data = input.paymentSessionData || {}
+  async refundPayment(
+    input: RefundPaymentInput
+  ): Promise<RefundPaymentOutput> {
+    const data = input.data || {}
     return {
       data: {
         ...data,
@@ -119,54 +138,59 @@ export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaym
   }
 
   async cancelPayment(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<any> {
+    input: CancelPaymentInput
+  ): Promise<CancelPaymentOutput> {
+    const data = input.data || {}
     return {
       data: {
-        ...paymentSessionData,
+        ...data,
         status: "canceled",
       },
     }
   }
 
   async deletePayment(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<any> {
+    input: DeletePaymentInput
+  ): Promise<DeletePaymentOutput> {
+    const data = input.data || {}
     return {
       data: {
-        ...paymentSessionData,
+        ...data,
         status: "canceled",
       },
     }
   }
 
   async getPaymentStatus(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<PaymentSessionStatus> {
-    const status = paymentSessionData.status as string
+    input: GetPaymentStatusInput
+  ): Promise<GetPaymentStatusOutput> {
+    const data = input.data || {}
+    const status = (data.status as string) || "pending"
     switch (status) {
       case "captured":
-        return "captured"
+        return { status: "captured", data }
       case "authorized":
-        return "authorized"
+        return { status: "authorized", data }
       case "canceled":
       case "failed":
-        return "canceled"
+        return { status: "canceled", data }
       default:
-        return "pending"
+        return { status: "pending", data }
     }
   }
 
   async retrievePayment(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<any> {
+    input: RetrievePaymentInput
+  ): Promise<RetrievePaymentOutput> {
     return {
-      data: paymentSessionData,
+      data: input.data || {},
     }
   }
 
-  async updatePayment(input: any): Promise<any> {
-    const prevData = (input.data || {}) as BoldPaymentSessionData
+  async updatePayment(
+    input: UpdatePaymentInput
+  ): Promise<UpdatePaymentOutput> {
+    const prevData = (input.data || {}) as unknown as BoldPaymentSessionData
     const amount = Number(input.amount)
     const currency = (
       input.currency_code ||
@@ -186,8 +210,10 @@ export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaym
     }
   }
 
-  async getWebhookActionAndData(payload: any): Promise<any> {
-    const { data, rawData, headers } = payload
+  async getWebhookActionAndData(
+    payload: ProviderWebhookPayload["payload"]
+  ): Promise<WebhookActionResult> {
+    const { data, rawData, headers } = (payload || {}) as any
     const signature =
       headers?.["x-bold-signature"] || headers?.["X-Bold-Signature"]
 
