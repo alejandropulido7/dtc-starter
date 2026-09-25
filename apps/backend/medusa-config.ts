@@ -19,4 +19,23 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET,
     },
   },
+  modules: [
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/bold-payment",
+            id: "bold",
+            options: {
+              apiKey: process.env.BOLD_IDENTITY_KEY || "",
+              secretKey: process.env.BOLD_SECRET_KEY || "",
+              mode: process.env.BOLD_MODE || "sandbox",
+            },
+          },
+        ],
+      },
+    },
+  ],
 })
+

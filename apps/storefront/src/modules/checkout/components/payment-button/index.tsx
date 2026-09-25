@@ -1,12 +1,12 @@
 "use client"
 
-import { isManual, isStripeLike } from "@lib/constants"
+import { isBold, isManual, isStripeLike } from "@lib/constants"
 import { placeOrder } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@modules/common/components/ui"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
 import { useParams } from "next/navigation"
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import ErrorMessage from "../error-message"
 
 type PaymentButtonProps = {
@@ -31,6 +31,14 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
     case isStripeLike(paymentSession?.provider_id):
       return (
         <StripePaymentButton
+          notReady={notReady}
+          cart={cart}
+          data-testid={dataTestId}
+        />
+      )
+    case isBold(paymentSession?.provider_id):
+      return (
+        <BoldPaymentButton
           notReady={notReady}
           cart={cart}
           data-testid={dataTestId}
@@ -190,6 +198,86 @@ const ManualTestPaymentButton = ({ notReady }: { notReady: boolean }) => {
       <ErrorMessage
         error={errorMessage}
         data-testid="manual-payment-error-message"
+      />
+    </>
+  )
+}
+
+const BoldPaymentButton = ({
+  cart,
+  notReady,
+  "data-testid": dataTestId,
+}: {
+  cart: HttpTypes.StoreCart
+  notReady: boolean
+  "data-testid"?: string
+}) => {
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const { countryCode } = useParams()
+
+  const paymentSession = cart.payment_collection?.payment_sessions?.[0]
+  const sessionData = (paymentSession?.data || {}) as Record<string, any>
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (!document.getElementById("bold-checkout-script")) {
+      const script = document.createElement("script")
+      script.id = "bold-checkout-script"
+      script.src = "https://checkout.bold.co/library/boldPaymentButton.js"
+      script.async = true
+      document.body.appendChild(script)
+    }
+  }, [])
+
+  const handlePayment = () => {
+    if (!sessionData.order_id || !sessionData.integrity_signature) {
+      setErrorMessage("Faltan datos de la sesión de pago de Bold.")
+      return
+    }
+
+    setSubmitting(true)
+
+    const redirectionUrl = `${window.location.origin}/api/payment-return?cart_id=${cart.id}&country_code=${countryCode}&provider=bold`
+
+    if (typeof (window as any).BoldCheckout !== "undefined") {
+      try {
+        const checkout = new (window as any).BoldCheckout({
+          orderId: sessionData.order_id,
+          currency: sessionData.currency || "COP",
+          amount: sessionData.amount,
+          apiKey: sessionData.api_key,
+          integritySignature: sessionData.integrity_signature,
+          redirectionUrl,
+        })
+        checkout.open()
+      } catch (err: any) {
+        setErrorMessage(err.message || "Error al abrir la pasarela de Bold.")
+        setSubmitting(false)
+      }
+    } else {
+      setErrorMessage(
+        "Cargando pasarela de Bold... por favor intenta en unos segundos."
+      )
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        disabled={notReady}
+        isLoading={submitting}
+        onClick={handlePayment}
+        size="large"
+        className="bg-[#0025FF] hover:bg-[#001ecc] text-white"
+        data-testid={dataTestId}
+      >
+        Pagar con Bold (PSE, Tarjetas, Nequi)
+      </Button>
+      <ErrorMessage
+        error={errorMessage}
+        data-testid="bold-payment-error-message"
       />
     </>
   )

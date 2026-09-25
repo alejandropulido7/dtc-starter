@@ -22,6 +22,21 @@ export async function GET(req: NextRequest) {
   const rejected = () =>
     NextResponse.redirect(`${origin}${prefix}/cart?error=payment_failed`)
 
+  const provider = searchParams.get("provider")
+  if (provider === "bold") {
+    if (!cartId) {
+      return rejected()
+    }
+    await setCartId(cartId)
+    try {
+      await placeOrder(cartId)
+    } catch (error) {
+      unstable_rethrow(error)
+      return NextResponse.redirect(`${origin}${prefix}/cart?error=order_failed`)
+    }
+    return NextResponse.redirect(`${origin}${prefix}/cart?error=order_failed`)
+  }
+
   if (!cartId || !paymentIntent || !paymentIntentClientSecret) {
     return rejected()
   }
