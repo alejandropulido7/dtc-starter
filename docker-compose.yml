@@ -6,7 +6,7 @@ services:
     container_name: medusa-backend
     restart: unless-stopped
     ports:
-      - "9000:9000"
+      - "9100:9000"
     environment:
       - NODE_ENV=production
       - PORT=9000
