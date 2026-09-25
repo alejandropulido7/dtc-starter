@@ -13,7 +13,11 @@ RUN pnpm install --frozen-lockfile --filter=@dtc/backend...
 COPY apps/backend ./apps/backend
 
 WORKDIR /app/apps/backend
-RUN pnpm build
+RUN pnpm build && \
+    if [ -d ".medusa/server/public" ]; then \
+      mkdir -p public && cp -rn .medusa/server/public/* public/ 2>/dev/null || true; \
+      mkdir -p .medusa/admin && cp -rn .medusa/server/public/* .medusa/admin/ 2>/dev/null || true; \
+    fi
 
 FROM node:20-alpine AS runner
 
@@ -28,4 +32,4 @@ WORKDIR /app/apps/backend
 
 EXPOSE 9000
 
-CMD ["sh", "-c", "pnpm medusa db:migrate && pnpm medusa start"]
+CMD ["sh", "-c", "pnpm medusa db:migrate && (find . -name 'index.html' | grep -q 'index.html' || pnpm medusa build) && pnpm medusa start"]
