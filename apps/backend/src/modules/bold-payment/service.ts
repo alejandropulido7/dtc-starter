@@ -225,7 +225,10 @@ export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaym
       if (!isValid) {
         return {
           action: "failed",
-          data: { session_id: data?.order_id || data?.reference },
+          data: {
+            session_id: data?.order_id || data?.reference || "",
+            amount: Number(data?.amount || 0),
+          },
         }
       }
     }
@@ -236,12 +239,15 @@ export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaym
       ""
     ).toUpperCase()
 
+    const amount = Number(data?.amount || 0)
+    const sessionId = data?.order_id || data?.reference || ""
+
     if (["PAID", "APPROVED", "SUCCESSFUL"].includes(status)) {
       return {
         action: "captured",
         data: {
-          session_id: data.order_id || data.reference,
-          amount: data.amount,
+          session_id: sessionId,
+          amount,
         },
       }
     }
@@ -250,7 +256,8 @@ export class BoldPaymentProviderService extends AbstractPaymentProvider<BoldPaym
       return {
         action: "failed",
         data: {
-          session_id: data.order_id || data.reference,
+          session_id: sessionId,
+          amount,
         },
       }
     }
