@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=9000
-      - DATABASE_URL=postgres://${POSTGRES_USER:-medusa}:${POSTGRES_PASSWORD:-medusa_secret}@medusa-postgres:5432/${POSTGRES_DB:-medusa_backend}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-medusa}:${POSTGRES_PASSWORD:-medusa_secret}@medusa-postgres:5432/${POSTGRES_DB:-medusa_backend}?ssl_mode=disable
       - REDIS_URL=redis://medusa-redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - COOKIE_SECRET=${COOKIE_SECRET}
