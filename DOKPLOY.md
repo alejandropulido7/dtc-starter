@@ -24,23 +24,23 @@ In the **Environment** tab of your Dokploy Compose service, paste the values fro
 In the **Domains** section of your Dokploy service:
 - **Backend API & Admin**:
   - Domain: `api.yourdomain.com`
-  - Target Service: `backend`
+  - Target Service: `medusa-backend`
   - Port: `9000`
   - Enable **HTTPS / Let's Encrypt**
 - **Storefront (if hosting in Dokploy)**:
   - Domain: `yourstore.com`
-  - Target Service: `storefront`
+  - Target Service: `medusa-storefront`
   - Port: `8000`
   - Enable **HTTPS / Let's Encrypt**
 
 *(Note: If you prefer hosting the storefront on Vercel, simply import this repo into Vercel and set the Root Directory to `apps/storefront`).*
 
 ### 4. Deploy the Stack
-Click **Deploy**. Dokploy will build the images, start PostgreSQL and Redis, run database migrations (`pnpm medusa db:migrate`), and launch the Medusa backend.
+Click **Deploy**. Dokploy will build the images, start PostgreSQL and Redis on the `homelab_mesh` network, run database migrations (`pnpm medusa db:migrate`), and launch the Medusa backend.
 
 ### 5. Create Admin User & Seed Initial Data
-Once the `backend` container is running:
-1. Open the **Terminal** of the `backend` container in Dokploy.
+Once the `medusa-backend` container is running:
+1. Open the **Terminal** of the `medusa-backend` container in Dokploy.
 2. Create your admin user:
    ```bash
    pnpm medusa user -e admin@yourdomain.com -p YourSecurePassword

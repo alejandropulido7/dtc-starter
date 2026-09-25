@@ -1,5 +1,5 @@
 services:
-  backend:
+  medusa-backend:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
@@ -10,8 +10,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=9000
-      - DATABASE_URL=postgres://${POSTGRES_USER:-medusa}:${POSTGRES_PASSWORD:-medusa_secret}@postgres:5432/${POSTGRES_DB:-medusa_backend}
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://${POSTGRES_USER:-medusa}:${POSTGRES_PASSWORD:-medusa_secret}@medusa-postgres:5432/${POSTGRES_DB:-medusa_backend}
+      - REDIS_URL=redis://medusa-redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - COOKIE_SECRET=${COOKIE_SECRET}
       - MEDUSA_BACKEND_URL=${MEDUSA_BACKEND_URL}
@@ -19,12 +19,14 @@ services:
       - ADMIN_CORS=${ADMIN_CORS}
       - AUTH_CORS=${AUTH_CORS}
     depends_on:
-      postgres:
+      medusa-postgres:
         condition: service_healthy
-      redis:
+      medusa-redis:
         condition: service_healthy
+    networks:
+      - homelab_mesh
 
-  postgres:
+  medusa-postgres:
     image: postgres:16-alpine
     container_name: medusa-postgres
     restart: unless-stopped
@@ -39,8 +41,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - homelab_mesh
 
-  redis:
+  medusa-redis:
     image: redis:7-alpine
     container_name: medusa-redis
     restart: unless-stopped
@@ -52,9 +56,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - homelab_mesh
 
-  # Optional: Storefront service in Dokploy (or deploy to Vercel instead)
-  storefront:
+  # Storefront service in Dokploy
+  medusa-storefront:
     build:
       context: .
       dockerfile: apps/storefront/Dockerfile
@@ -75,8 +81,14 @@ services:
       - NEXT_PUBLIC_BASE_URL=${STORE_URL}
       - NEXT_PUBLIC_DEFAULT_REGION=${NEXT_PUBLIC_DEFAULT_REGION:-co}
     depends_on:
-      - backend
+      - medusa-backend
+    networks:
+      - homelab_mesh
 
 volumes:
   medusa_pgdata:
   medusa_redisdata:
+
+networks:
+  homelab_mesh:
+    external: true
